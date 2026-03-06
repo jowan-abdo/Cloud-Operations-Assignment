@@ -1,0 +1,51 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nginx-deployment
+  namespace: autoscale
+spec:
+  selector:
+    matchLabels:
+      app: nginx-deployment
+  replicas: 2
+  template:
+    metadata:
+      labels:
+        app: nginx-deployment
+    spec:
+      containers:
+      - name: nginx
+        image: nginx:latest
+        ports:
+        - containerPort: 80
+        - containerPort: 8080
+        resources:
+          requests:
+            cpu: "20m"
+            memory: "64Mi"
+          limits:
+            cpu: "200m"
+            memory: "128Mi"
+        volumeMounts:
+        - name: nginx-config
+          mountPath: /etc/nginx/conf.d
+          readOnly: true
+
+      - name: nginx-exporter
+        image: nginx/nginx-prometheus-exporter:1.1.0
+        args:
+          - "-nginx.scrape-uri=http://localhost:8080/stub_status"
+        ports:
+        - containerPort: 9113
+        resources:
+          requests:
+            cpu: "10m"
+            memory: "32Mi"
+          limits:
+            cpu: "100m"
+            memory: "64Mi"
+
+      volumes:
+      - name: nginx-config
+        configMap:
+          name: nginx-stubstatus-config

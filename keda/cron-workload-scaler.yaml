@@ -1,0 +1,30 @@
+apiVersion: keda.sh/v1alpha1
+kind: ScaledObject
+metadata:
+  name: cron-workload-scaler
+  namespace: autoscale
+spec:
+  scaleTargetRef:
+    name: nginx-deployment    
+  minReplicaCount: 1
+  maxReplicaCount: 5
+  pollingInterval: 30
+  cooldownPeriod: 120
+  triggers:
+    - type: cron
+      metadata:
+        timezone: "Europe/Brussels"
+        start: "0 20 * * *"       
+        end: "0 6 * * *"          
+        desiredReplicas: "1"
+    - type: cpu
+      metricType: Utilization
+      metadata:
+        value: "10"
+    - type: prometheus
+      metadata:
+        serverAddress: "http://kube-prometheus-stack-prometheus.kube-prometheus-stack.svc.cluster.local:9090"
+        metricName: "nginx_connections_per_second"
+        threshold: "2"
+        query: |
+          sum(rate(nginx_connections_accepted[1m]))
